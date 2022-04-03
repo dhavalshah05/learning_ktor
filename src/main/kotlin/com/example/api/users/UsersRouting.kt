@@ -9,11 +9,21 @@ import io.ktor.application.*
 import io.ktor.request.*
 import io.ktor.response.*
 
-fun Application.configureUsersRouting(
+fun Route.usersRouting(
     usersRepository: UsersRepository
 ) {
-    routing {
-        get("/users") {
+    route("/users") {
+        post {
+            val userRequest = call.receive<UserRequest>()
+
+            val user = User(id = 0L, name = userRequest.name)
+            val addedUser = usersRepository.addUser(user)
+
+            val response = ApiResponse(data = addedUser, message = "User added")
+            call.respond(HttpStatusCode.OK, response)
+        }
+
+        get {
             val users = usersRepository.getUsers()
             val message = if (users.isEmpty()) {
                 "Users not found"
@@ -24,7 +34,7 @@ fun Application.configureUsersRouting(
             call.respond(HttpStatusCode.OK, response)
         }
 
-        get("/users/{userId}") {
+        get("/{userId}") {
             val userId = call.parameters["userId"]?.toLongOrNull()
             if (userId == null) {
                 val response = ApiResponse.withMessage("User not found for given id")
@@ -40,16 +50,6 @@ fun Application.configureUsersRouting(
             }
 
             val response = ApiResponse(data = user, message = "User found")
-            call.respond(HttpStatusCode.OK, response)
-        }
-
-        post("/users") {
-            val userRequest = call.receive<UserRequest>()
-
-            val user = User(id = 0L, name = userRequest.name)
-            val addedUser = usersRepository.addUser(user)
-
-            val response = ApiResponse(data = addedUser, message = "User added")
             call.respond(HttpStatusCode.OK, response)
         }
     }
